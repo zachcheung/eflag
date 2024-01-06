@@ -128,6 +128,13 @@ var CommandLine = &FlagSet{}
 // Var registers a flag and associates it with a variable, environment
 // variable, and usage description. It is recommended to use this function
 // during the initialization phase to register flags.
+//
+// The env parameter determines the association with an environment variable:
+//   - When env is an empty string (""): The environment variable will be derived
+//     from the flag name, optionally with a prefix, to check for the environment
+//     variable.
+//   - When env is "-": The flag will not be associated with any environment
+//     variable, and environment variable checking will be ignored.
 func Var(p interface{}, name string, value interface{}, usage, env string) {
 	CommandLine.Flags = append(CommandLine.Flags, newFlag(p, name, value, usage, env))
 }
