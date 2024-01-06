@@ -1,3 +1,6 @@
+// Package eflag provides an extended flag package with enhanced features
+// including the ability to set flag values from environment variables and
+// a more convenient way to manage and parse multiple flags.
 package eflag
 
 import (
@@ -17,6 +20,8 @@ type Flag struct {
 }
 
 // newFlag creates a new Flag based on the provided parameters.
+// It associates a flag with a variable, a default value, a usage description,
+// and an optional environment variable.
 func newFlag(p interface{}, name string, value interface{}, usage, env string) *Flag {
 	switch value.(type) {
 	case bool:
@@ -43,7 +48,7 @@ func newFlag(p interface{}, name string, value interface{}, usage, env string) *
 	if env == "" {
 		env = strings.ToUpper(name)
 	} else if env == "-" {
-		// don't read from env var
+		// Don't read from env var
 	} else {
 		env = strings.ToUpper(env)
 	}
@@ -55,13 +60,16 @@ func newFlag(p interface{}, name string, value interface{}, usage, env string) *
 	}
 }
 
-// Flags is a slice of Flag pointers.
-type Flags []*Flag
+// FlagSet represents a set of flags and provides methods for parsing them.
+type FlagSet struct {
+	Flags  []*Flag // List of flags in the set
+	Prefix string  // Prefix for environment variables associated with flags
+}
 
 // Parse parses command-line flags and sets values from environment variables.
-func (ff Flags) Parse(prefix string) {
+func (ff *FlagSet) Parse(prefix string) {
 	m := make(map[string]*Flag)
-	for _, f := range ff {
+	for _, f := range ff.Flags {
 		m[f.Name] = f
 	}
 	flag.Parse()
@@ -75,7 +83,22 @@ func (ff Flags) Parse(prefix string) {
 	if prefix != "" && !strings.HasSuffix(prefix, "_") {
 		prefix += "_"
 	}
-	for _, f := range ff {
+	ff.Prefix = prefix
+
+	ff.parse()
+}
+
+// ReParse re-parses flags. This can be useful in scenarios where the
+// environment variables have changed, and you want to update the flag values.
+func (ff *FlagSet) ReParse() {
+	ff.parse()
+}
+
+// parse sets flag values from environment variables and respects
+// the precedence of explicitly set flags over environment variables.
+func (ff *FlagSet) parse() {
+	prefix := ff.Prefix
+	for _, f := range ff.Flags {
 		if f.Changed {
 			// Explicitly set flag has the highest precedence
 			continue
@@ -97,14 +120,25 @@ func (ff Flags) Parse(prefix string) {
 	}
 }
 
-var flags Flags
+// CommandLine represents the default set of flags that are parsed
+// when the package is imported. It provides a convenient global
+// instance for managing flags.
+var CommandLine = &FlagSet{}
 
-// Var registers a flag and associates it with a variable, environment variable, and usage description.
+// Var registers a flag and associates it with a variable, environment
+// variable, and usage description. It is recommended to use this function
+// during the initialization phase to register flags.
 func Var(p interface{}, name string, value interface{}, usage, env string) {
-	flags = append(flags, newFlag(p, name, value, usage, env))
+	CommandLine.Flags = append(CommandLine.Flags, newFlag(p, name, value, usage, env))
 }
 
-// Parse parses all registered flags.
+// Parse parses all registered flags using the provided prefix for environment variables.
 func Parse(prefix string) {
-	flags.Parse(strings.ToUpper(prefix))
+	CommandLine.Parse(strings.ToUpper(prefix))
+}
+
+// ReParse re-parses all registered flags. This is useful when
+// environment variables have changed, and you want to update the flag values.
+func ReParse() {
+	CommandLine.ReParse()
 }
