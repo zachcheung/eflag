@@ -4,8 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"reflect"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -15,7 +13,6 @@ type Flag struct {
 	Flag    *flag.Flag
 	Env     string
 	Changed bool
-	p       interface{}
 }
 
 func newFlag(p interface{}, name string, value interface{}, usage, env string) *Flag {
@@ -53,7 +50,6 @@ func newFlag(p interface{}, name string, value interface{}, usage, env string) *
 		Name: name,
 		Flag: flag.Lookup(name),
 		Env:  env,
-		p:    p,
 	}
 }
 
@@ -91,63 +87,12 @@ func (ff Flags) Parse(prefix string) {
 			}
 		}
 		if v := os.Getenv(f.Env); v != "" {
-			if err := setFromStr(f.p, v); err != nil {
+			if err := f.Flag.Value.Set(v); err != nil {
 				fmt.Printf("invalid value %#v for env %s: parse error\n", v, f.Env)
 				os.Exit(2)
 			}
 		}
 	}
-}
-
-func setFromStr(ptr interface{}, s string) error {
-	v := reflect.ValueOf(ptr)
-	if v.Kind() != reflect.Ptr {
-		return fmt.Errorf("expected a pointer, got %T", ptr)
-	}
-
-	v = v.Elem()
-	switch v.Kind() {
-	case reflect.Bool:
-		boolVal, err := strconv.ParseBool(s)
-		if err != nil {
-			return err
-		}
-		v.SetBool(boolVal)
-	case reflect.String:
-		v.SetString(s)
-	case reflect.Int, reflect.Int64:
-		intVal, err := strconv.ParseInt(s, 10, 64)
-		if err != nil {
-			return err
-		}
-		v.SetInt(intVal)
-	case reflect.Uint, reflect.Uint64:
-		uintVal, err := strconv.ParseUint(s, 10, 64)
-		if err != nil {
-			return err
-		}
-		v.SetUint(uintVal)
-	case reflect.Float64:
-		floatVal, err := strconv.ParseFloat(s, 64)
-		if err != nil {
-			return err
-		}
-		v.SetFloat(floatVal)
-	case reflect.Struct:
-		if v.Type() == reflect.TypeOf(time.Duration(0)) {
-			durationVal, err := time.ParseDuration(s)
-			if err != nil {
-				return err
-			}
-			v.SetInt(int64(durationVal))
-		} else {
-			return fmt.Errorf("unsupported struct type")
-		}
-	default:
-		return fmt.Errorf("unsupported type %v", v.Kind())
-	}
-
-	return nil
 }
 
 var flags Flags
