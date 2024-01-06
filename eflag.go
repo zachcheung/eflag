@@ -8,13 +8,15 @@ import (
 	"time"
 )
 
+// Flag represents a command-line flag and its associated information.
 type Flag struct {
-	Name    string
-	Flag    *flag.Flag
-	Env     string
-	Changed bool
+	Name    string     // Name of the flag
+	Flag    *flag.Flag // Reference to the underlying flag
+	Env     string     // Environment variable associated with the flag
+	Changed bool       // Indicates whether the flag has been changed
 }
 
+// newFlag creates a new Flag based on the provided parameters.
 func newFlag(p interface{}, name string, value interface{}, usage, env string) *Flag {
 	switch value.(type) {
 	case bool:
@@ -53,8 +55,10 @@ func newFlag(p interface{}, name string, value interface{}, usage, env string) *
 	}
 }
 
+// Flags is a slice of Flag pointers.
 type Flags []*Flag
 
+// Parse parses command-line flags and sets values from environment variables.
 func (ff Flags) Parse(prefix string) {
 	m := make(map[string]*Flag)
 	for _, f := range ff {
@@ -73,7 +77,7 @@ func (ff Flags) Parse(prefix string) {
 	}
 	for _, f := range ff {
 		if f.Changed {
-			// explicitly set flag has the highest precedence
+			// Explicitly set flag has the highest precedence
 			continue
 		}
 
@@ -97,10 +101,12 @@ func (ff Flags) Parse(prefix string) {
 
 var flags Flags
 
+// Var registers a flag and associates it with a variable, environment variable, and usage description.
 func Var(p interface{}, name string, value interface{}, usage, env string) {
 	flags = append(flags, newFlag(p, name, value, usage, env))
 }
 
+// Parse parses all registered flags.
 func Parse(prefix string) {
 	flags.Parse(prefix)
 }
