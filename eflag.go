@@ -85,10 +85,8 @@ func (ff Flags) Parse(prefix string) {
 			continue
 		}
 
-		if prefix != "" {
-			if !strings.HasPrefix(f.Env, prefix) {
-				f.Env = prefix + f.Env
-			}
+		if prefix != "" && !strings.HasPrefix(f.Env, prefix) {
+			f.Env = prefix + f.Env
 		}
 		if v := os.Getenv(f.Env); v != "" {
 			if err := f.Flag.Value.Set(v); err != nil {
@@ -108,5 +106,5 @@ func Var(p interface{}, name string, value interface{}, usage, env string) {
 
 // Parse parses all registered flags.
 func Parse(prefix string) {
-	flags.Parse(prefix)
+	flags.Parse(strings.ToUpper(prefix))
 }
