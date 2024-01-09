@@ -63,11 +63,22 @@ func newFlag(p interface{}, name string, value interface{}, usage, env string) *
 // FlagSet represents a set of flags and provides methods for parsing them.
 type FlagSet struct {
 	Flags  []*Flag // List of flags in the set
-	Prefix string  // Prefix for environment variables associated with flags
+	prefix string  // Prefix for environment variables associated with flags
+}
+
+// SetPrefix set environment variable prefix.
+func (ff *FlagSet) SetPrefix(prefix string) {
+	if prefix != "" {
+		prefix = strings.ToUpper(prefix)
+		if !strings.HasSuffix(prefix, "_") {
+			prefix += "_"
+		}
+	}
+	ff.prefix = prefix
 }
 
 // Parse parses command-line flags and sets values from environment variables.
-func (ff *FlagSet) Parse(prefix string) {
+func (ff *FlagSet) Parse() {
 	m := make(map[string]*Flag)
 	for _, f := range ff.Flags {
 		m[f.Name] = f
@@ -79,11 +90,6 @@ func (ff *FlagSet) Parse(prefix string) {
 			v.Changed = true
 		}
 	})
-
-	if prefix != "" && !strings.HasSuffix(prefix, "_") {
-		prefix += "_"
-	}
-	ff.Prefix = prefix
 
 	ff.parse()
 }
@@ -97,7 +103,7 @@ func (ff *FlagSet) ReParse() {
 // parse sets flag values from environment variables and respects
 // the precedence of explicitly set flags over environment variables.
 func (ff *FlagSet) parse() {
-	prefix := ff.Prefix
+	prefix := ff.prefix
 	for _, f := range ff.Flags {
 		if f.Changed {
 			// Explicitly set flag has the highest precedence
@@ -139,9 +145,14 @@ func Var(p interface{}, name string, value interface{}, usage, env string) {
 	CommandLine.Flags = append(CommandLine.Flags, newFlag(p, name, value, usage, env))
 }
 
-// Parse parses all registered flags using the provided prefix for environment variables.
-func Parse(prefix string) {
-	CommandLine.Parse(strings.ToUpper(prefix))
+// SetPrefix set environment variable prefix.
+func SetPrefix(prefix string) {
+	CommandLine.SetPrefix(prefix)
+}
+
+// Parse parses all registered flags.
+func Parse() {
+	CommandLine.Parse()
 }
 
 // ReParse re-parses all registered flags. This is useful when

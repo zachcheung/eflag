@@ -34,7 +34,8 @@ func main() {
 	eflag.Var(&host, "host", "localhost", "host", "")
 	eflag.Var(&port, "port", 8000, "port", "-")
 
-	eflag.Parse("myapp") // Use an optional prefix for environment variables
+	eflag.SetPrefix("myapp") // Optionally set prefix for environment variables
+	eflag.Parse()
 
 	fmt.Println("host:", host) // Environment variable "MYAPP_HOST" will overrides default "localhost" if it's set
 	fmt.Println("port:", port) // Ignores environment variable "MYAPP_PORT"

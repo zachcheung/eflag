@@ -18,7 +18,8 @@ func TestParseWithPrefix(t *testing.T) {
 	Var(&myInt, "myint", 0, "Description for myint flag", "PREFIX_MY_INT_ENV")
 	Var(&myString, "mystring", "default", "Description for mystring flag", "-")
 
-	Parse("PREFIX_")
+	SetPrefix("PREFIX_")
+	Parse()
 
 	if !myBool {
 		t.Error("Expected myBool to be true, but it's false.")
@@ -46,7 +47,9 @@ func TestParseWithoutPrefix(t *testing.T) {
 	Var(&testInt, "testint", 0, "Description for testint flag", "TEST_INT_ENV")
 	Var(&testString, "teststring", "default", "Description for teststring flag", "-")
 
-	Parse("")
+	// reset prefix here
+	SetPrefix("")
+	Parse()
 
 	if !testBool {
 		t.Error("Expected testBool to be true, but it's false.")
