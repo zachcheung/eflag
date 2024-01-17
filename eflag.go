@@ -13,33 +13,33 @@ import (
 
 // Flag represents a command-line flag and its associated information.
 type Flag struct {
-	Name    string     // Name of the flag
-	Flag    *flag.Flag // Reference to the underlying flag
-	Env     string     // Environment variable associated with the flag
-	Changed bool       // Indicates whether the flag has been changed
+	*flag.Flag
+	Name    string // Name of the flag
+	Env     string // Environment variable associated with the flag
+	Changed bool   // Indicates whether the flag has been changed
 }
 
 // newFlag creates a new Flag based on the provided parameters.
 // It associates a flag with a variable, a default value, a usage description,
 // and an optional environment variable.
-func newFlag(p interface{}, name string, value interface{}, usage, env string) *Flag {
+func newFlag(fs *flag.FlagSet, p interface{}, name string, value interface{}, usage, env string) *Flag {
 	switch value.(type) {
 	case bool:
-		flag.BoolVar(p.(*bool), name, value.(bool), usage)
+		fs.BoolVar(p.(*bool), name, value.(bool), usage)
 	case time.Duration:
-		flag.DurationVar(p.(*time.Duration), name, value.(time.Duration), usage)
+		fs.DurationVar(p.(*time.Duration), name, value.(time.Duration), usage)
 	case float64:
-		flag.Float64Var(p.(*float64), name, value.(float64), usage)
+		fs.Float64Var(p.(*float64), name, value.(float64), usage)
 	case int:
-		flag.IntVar(p.(*int), name, value.(int), usage)
+		fs.IntVar(p.(*int), name, value.(int), usage)
 	case int64:
-		flag.Int64Var(p.(*int64), name, value.(int64), usage)
+		fs.Int64Var(p.(*int64), name, value.(int64), usage)
 	case string:
-		flag.StringVar(p.(*string), name, value.(string), usage)
+		fs.StringVar(p.(*string), name, value.(string), usage)
 	case uint:
-		flag.UintVar(p.(*uint), name, value.(uint), usage)
+		fs.UintVar(p.(*uint), name, value.(uint), usage)
 	case uint64:
-		flag.Uint64Var(p.(*uint64), name, value.(uint64), usage)
+		fs.Uint64Var(p.(*uint64), name, value.(uint64), usage)
 	default:
 		fmt.Printf("invalid type: %T\n", value)
 		os.Exit(1)
@@ -54,57 +54,93 @@ func newFlag(p interface{}, name string, value interface{}, usage, env string) *
 	}
 
 	return &Flag{
+		Flag: fs.Lookup(name),
 		Name: name,
-		Flag: flag.Lookup(name),
 		Env:  env,
 	}
 }
 
+// ErrorHandling defines how FlagSet.Parse behaves if the parse fails.
+type ErrorHandling flag.ErrorHandling
+
+const (
+	ContinueOnError ErrorHandling = iota // Return a descriptive error.
+	ExitOnError                          // Call os.Exit(2) or for -h/-help Exit(0).
+	PanicOnError                         // Call panic with a descriptive error.
+)
+
 // FlagSet represents a set of flags and provides methods for parsing them.
 type FlagSet struct {
+	*flag.FlagSet
 	Flags  []*Flag // List of flags in the set
 	prefix string  // Prefix for environment variables associated with flags
 }
 
+// NewFlagSet returns a new, empty flag set with the specified name and
+// error handling property. If the name is not empty, it will be printed
+// in the default usage message and in error messages.
+func NewFlagSet(name string, errorHandling ErrorHandling) *FlagSet {
+	flagSet := flag.NewFlagSet(name, flag.ErrorHandling(errorHandling))
+	f := &FlagSet{
+		FlagSet: flagSet,
+	}
+	return f
+}
+
 // SetPrefix set environment variable prefix.
-func (ff *FlagSet) SetPrefix(prefix string) {
+func (fs *FlagSet) SetPrefix(prefix string) {
 	if prefix != "" {
 		prefix = strings.ToUpper(prefix)
 		if !strings.HasSuffix(prefix, "_") {
 			prefix += "_"
 		}
 	}
-	ff.prefix = prefix
+	fs.prefix = prefix
+}
+
+// Var registers a flag and associates it with a variable, environment
+// variable, and usage description. It is recommended to use this function
+// during the initialization phase to register flags.
+//
+// The env parameter determines the association with an environment variable:
+//   - When env is an empty string (""): The environment variable will be derived
+//     from the flag name, optionally with a prefix, to check for the environment
+//     variable.
+//   - When env is "-": The flag will not be associated with any environment
+//     variable, and environment variable checking will be ignored.
+func (fs *FlagSet) Var(p interface{}, name string, value interface{}, usage, env string) {
+	fs.Flags = append(fs.Flags, newFlag(fs.FlagSet, p, name, value, usage, env))
 }
 
 // Parse parses command-line flags and sets values from environment variables.
-func (ff *FlagSet) Parse() {
+func (fs *FlagSet) Parse(arguments []string) {
 	m := make(map[string]*Flag)
-	for _, f := range ff.Flags {
+	for _, f := range fs.Flags {
 		m[f.Name] = f
 	}
-	flag.Parse()
+	fs.FlagSet.Parse(arguments)
 
 	flag.Visit(func(f *flag.Flag) {
 		if v, ok := m[f.Name]; ok {
+			// Normally, ok will always be true
 			v.Changed = true
 		}
 	})
 
-	ff.parse()
+	fs.parse()
 }
 
 // ReParse re-parses flags. This can be useful in scenarios where the
 // environment variables have changed, and you want to update the flag values.
-func (ff *FlagSet) ReParse() {
-	ff.parse()
+func (fs *FlagSet) ReParse() {
+	fs.parse()
 }
 
 // parse sets flag values from environment variables and respects
 // the precedence of explicitly set flags over environment variables.
-func (ff *FlagSet) parse() {
-	prefix := ff.prefix
-	for _, f := range ff.Flags {
+func (fs *FlagSet) parse() {
+	prefix := fs.prefix
+	for _, f := range fs.Flags {
 		if f.Changed {
 			// Explicitly set flag has the highest precedence
 			continue
@@ -129,20 +165,11 @@ func (ff *FlagSet) parse() {
 // CommandLine represents the default set of flags that are parsed
 // when the package is imported. It provides a convenient global
 // instance for managing flags.
-var CommandLine = &FlagSet{}
+var CommandLine = NewFlagSet(os.Args[0], ExitOnError)
 
-// Var registers a flag and associates it with a variable, environment
-// variable, and usage description. It is recommended to use this function
-// during the initialization phase to register flags.
-//
-// The env parameter determines the association with an environment variable:
-//   - When env is an empty string (""): The environment variable will be derived
-//     from the flag name, optionally with a prefix, to check for the environment
-//     variable.
-//   - When env is "-": The flag will not be associated with any environment
-//     variable, and environment variable checking will be ignored.
+// Var registers a command-line flag and associates it with a variable, environment.
 func Var(p interface{}, name string, value interface{}, usage, env string) {
-	CommandLine.Flags = append(CommandLine.Flags, newFlag(p, name, value, usage, env))
+	CommandLine.Var(p, name, value, usage, env)
 }
 
 // SetPrefix set environment variable prefix.
@@ -152,11 +179,51 @@ func SetPrefix(prefix string) {
 
 // Parse parses all registered flags.
 func Parse() {
-	CommandLine.Parse()
+	CommandLine.Parse(os.Args[1:])
 }
 
 // ReParse re-parses all registered flags. This is useful when
 // environment variables have changed, and you want to update the flag values.
 func ReParse() {
 	CommandLine.ReParse()
+}
+
+// Func defines a flag with the specified name and usage string.
+// Each time the flag is seen, fn is called with the value of the flag.
+// If fn returns a non-nil error, it will be treated as a flag value parsing error.
+func Func(name, usage string, fn func(string) error) {
+	CommandLine.Func(name, usage, fn)
+}
+
+// Set sets the value of the named command-line flag.
+func Set(name, value string) error {
+	return CommandLine.Set(name, value)
+}
+
+// PrintDefaults prints, to standard error unless configured otherwise,
+// a usage message showing the default settings of all defined
+// command-line flags.
+func PrintDefaults() {
+	CommandLine.PrintDefaults()
+}
+
+// NFlag returns the number of command-line flags that have been set.
+func NFlag() int { return CommandLine.NFlag() }
+
+// Arg returns the i'th command-line argument. Arg(0) is the first remaining argument
+// after flags have been processed. Arg returns an empty string if the
+// requested element does not exist.
+func Arg(i int) string {
+	return CommandLine.Arg(i)
+}
+
+// NArg is the number of arguments remaining after flags have been processed.
+func NArg() int { return CommandLine.NArg() }
+
+// Args returns the non-flag command-line arguments.
+func Args() []string { return CommandLine.Args() }
+
+// Parsed reports whether the command-line flags have been parsed.
+func Parsed() bool {
+	return CommandLine.Parsed()
 }

@@ -14,12 +14,13 @@ func TestParseWithPrefix(t *testing.T) {
 	os.Setenv("PREFIX_MY_INT_ENV", "1")
 	os.Setenv("PREFIX_MYSTRING", "custom_value")
 
-	Var(&myBool, "mybool", false, "Description for mybool flag", "")
-	Var(&myInt, "myint", 0, "Description for myint flag", "PREFIX_MY_INT_ENV")
-	Var(&myString, "mystring", "default", "Description for mystring flag", "-")
+	f := NewFlagSet("test", ExitOnError)
+	f.Var(&myBool, "mybool", false, "Description for mybool flag", "")
+	f.Var(&myInt, "myint", 0, "Description for myint flag", "PREFIX_MY_INT_ENV")
+	f.Var(&myString, "mystring", "default", "Description for mystring flag", "-")
 
-	SetPrefix("PREFIX_")
-	Parse()
+	f.SetPrefix("PREFIX_")
+	f.Parse([]string{})
 
 	if !myBool {
 		t.Error("Expected myBool to be true, but it's false.")
@@ -43,13 +44,12 @@ func TestParseWithoutPrefix(t *testing.T) {
 	os.Setenv("TEST_INT_ENV", "1")
 	os.Setenv("TESTSTRING", "custom_value")
 
-	Var(&testBool, "testbool", false, "Description for testbool flag", "")
-	Var(&testInt, "testint", 0, "Description for testint flag", "TEST_INT_ENV")
-	Var(&testString, "teststring", "default", "Description for teststring flag", "-")
+	f := NewFlagSet("test", ExitOnError)
+	f.Var(&testBool, "testbool", false, "Description for testbool flag", "")
+	f.Var(&testInt, "testint", 0, "Description for testint flag", "TEST_INT_ENV")
+	f.Var(&testString, "teststring", "default", "Description for teststring flag", "-")
 
-	// reset prefix here
-	SetPrefix("")
-	Parse()
+	f.Parse([]string{})
 
 	if !testBool {
 		t.Error("Expected testBool to be true, but it's false.")
