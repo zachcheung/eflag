@@ -120,7 +120,7 @@ func (fs *FlagSet) Parse(arguments []string) {
 	}
 	fs.FlagSet.Parse(arguments)
 
-	flag.Visit(func(f *flag.Flag) {
+	fs.FlagSet.Visit(func(f *flag.Flag) {
 		if v, ok := m[f.Name]; ok {
 			// Normally, ok will always be true
 			v.Changed = true

@@ -20,14 +20,14 @@ func TestParseWithPrefix(t *testing.T) {
 	f.Var(&myString, "mystring", "default", "Description for mystring flag", "-")
 
 	f.SetPrefix("PREFIX_")
-	f.Parse([]string{})
+	f.Parse([]string{"-myint", "2"})
 
 	if !myBool {
 		t.Error("Expected myBool to be true, but it's false.")
 	}
 
-	if myInt != 1 {
-		t.Errorf("Expected myInt to be 1, but got %d", myInt)
+	if myInt != 2 {
+		t.Errorf("Expected myInt to be 2, but got %d", myInt)
 	}
 
 	if myString != "default" {
@@ -49,10 +49,10 @@ func TestParseWithoutPrefix(t *testing.T) {
 	f.Var(&testInt, "testint", 0, "Description for testint flag", "TEST_INT_ENV")
 	f.Var(&testString, "teststring", "default", "Description for teststring flag", "-")
 
-	f.Parse([]string{})
+	f.Parse([]string{"-testbool=false"})
 
-	if !testBool {
-		t.Error("Expected testBool to be true, but it's false.")
+	if testBool {
+		t.Error("Expected testBool to be false, but it's true.")
 	}
 
 	if testInt != 1 {

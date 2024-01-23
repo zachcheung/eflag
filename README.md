@@ -27,18 +27,21 @@ import (
 
 func main() {
 	var (
-		host string
-		port int
+		host  string
+		port  int
+		debug bool
 	)
 
 	eflag.Var(&host, "host", "localhost", "host", "")
 	eflag.Var(&port, "port", 8000, "port", "-")
+	eflag.Var(&debug, "debug", false, "debug", "")
 
 	eflag.SetPrefix("myapp") // Optionally set prefix for environment variables
 	eflag.Parse()
 
-	fmt.Println("host:", host) // Environment variable "MYAPP_HOST" will overrides default "localhost" if it's set
-	fmt.Println("port:", port) // Ignores environment variable "MYAPP_PORT"
+	fmt.Println("host:", host)   // Environment variable "MYAPP_HOST" will overrides default "localhost" if it's set
+	fmt.Println("port:", port)   // Ignores environment variable "MYAPP_PORT"
+	fmt.Println("debug:", debug) // MYAPP_DEBUG=true vs -debug=false
 }
 ```
 
