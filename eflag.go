@@ -49,7 +49,7 @@ func newFlag(fs *flag.FlagSet, p interface{}, name string, value interface{}, us
 	}
 
 	if env == "" {
-		env = strings.ToUpper(name)
+		env = MixedCapsToScreamingSnake(name)
 	} else if env == "-" {
 		// Don't read from env var
 	} else {
@@ -107,9 +107,10 @@ func (fs *FlagSet) SetPrefix(prefix string) {
 // during the initialization phase to register flags.
 //
 // The env parameter determines the association with an environment variable:
-//   - When env is an empty string (""): The environment variable will be derived
-//     from the flag name, optionally with a prefix, to check for the environment
-//     variable.
+//   - When env is an empty string (""): The environment variable name will be derived
+//     from the flag name by converting it to uppercase and replacing any camel case with underscores.
+//     For example, if the flag name is "mixedCaps", the derived environment variable name will be "MIXED_CAPS".
+//     An optional prefix can be added to the environment variable name by using SetPrefix() function.
 //   - When env is "-": The flag will not be associated with any environment
 //     variable, and environment variable checking will be ignored.
 func (fs *FlagSet) Var(p interface{}, name string, value interface{}, usage, env string) {
