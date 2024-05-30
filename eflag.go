@@ -13,6 +13,7 @@ import (
 
 // Flag represents a command-line flag and its associated information.
 type Flag struct {
+	p interface{}
 	*flag.Flag
 	Name    string // Name of the flag
 	Env     string // Environment variable associated with the flag
@@ -40,6 +41,8 @@ func newFlag(fs *flag.FlagSet, p interface{}, name string, value interface{}, us
 		fs.UintVar(p.(*uint), name, value.(uint), usage)
 	case *uint64:
 		fs.Uint64Var(p.(*uint64), name, value.(uint64), usage)
+	case *StringList:
+		fs.StringVar(&p.(*StringList).p, name, value.(string), usage)
 	default:
 		fmt.Printf("invalid type: %T\n", p)
 		os.Exit(1)
@@ -54,6 +57,7 @@ func newFlag(fs *flag.FlagSet, p interface{}, name string, value interface{}, us
 	}
 
 	return &Flag{
+		p:    p,
 		Flag: fs.Lookup(name),
 		Name: name,
 		Env:  env,
@@ -158,6 +162,13 @@ func (fs *FlagSet) parse() {
 				fmt.Printf("invalid value %#v for env %s: parse error\n", v, f.Env)
 				os.Exit(2)
 			}
+		}
+	}
+
+	for _, f := range fs.Flags {
+		switch f.p.(type) {
+		case *StringList:
+			f.p.(*StringList).setValue()
 		}
 	}
 }
