@@ -23,25 +23,25 @@ type Flag struct {
 // It associates a flag with a variable, a default value, a usage description,
 // and an optional environment variable.
 func newFlag(fs *flag.FlagSet, p interface{}, name string, value interface{}, usage, env string) *Flag {
-	switch value.(type) {
-	case bool:
+	switch p.(type) {
+	case *bool:
 		fs.BoolVar(p.(*bool), name, value.(bool), usage)
-	case time.Duration:
+	case *time.Duration:
 		fs.DurationVar(p.(*time.Duration), name, value.(time.Duration), usage)
-	case float64:
+	case *float64:
 		fs.Float64Var(p.(*float64), name, value.(float64), usage)
-	case int:
+	case *int:
 		fs.IntVar(p.(*int), name, value.(int), usage)
-	case int64:
+	case *int64:
 		fs.Int64Var(p.(*int64), name, value.(int64), usage)
-	case string:
+	case *string:
 		fs.StringVar(p.(*string), name, value.(string), usage)
-	case uint:
+	case *uint:
 		fs.UintVar(p.(*uint), name, value.(uint), usage)
-	case uint64:
+	case *uint64:
 		fs.Uint64Var(p.(*uint64), name, value.(uint64), usage)
 	default:
-		fmt.Printf("invalid type: %T\n", value)
+		fmt.Printf("invalid type: %T\n", p)
 		os.Exit(1)
 	}
 
