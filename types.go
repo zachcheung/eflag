@@ -8,7 +8,9 @@ type StringList struct {
 
 // setValue sets the value of the StringList by splitting the p with commas.
 func (sl *StringList) setValue() {
-	sl.value = SplitWithComma(sl.p)
+	if sl.p != "" {
+		sl.value = SplitWithComma(sl.p)
+	}
 }
 
 // Value returns the current list of strings stored in the StringList.
