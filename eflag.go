@@ -15,6 +15,7 @@ import (
 type Flag struct {
 	p         interface{}
 	setByFlag bool // Indicates whether the flag value was explicitly set via the command-line interface (CLI)
+	setByEnv  bool // Indicates whether the flag value was set via an environment variable
 	*flag.Flag
 	Name string // Name of the flag
 	Env  string // Environment variable associated with the flag
@@ -64,9 +65,9 @@ func newFlag(fs *flag.FlagSet, p interface{}, name string, value interface{}, us
 	}
 }
 
-// IsSetByFlag indicates whether the flag value was explicitly set via the command-line interface (CLI).
-func (f *Flag) IsSetByFlag() bool {
-	return f.setByFlag
+// IsSet indicates whether the flag value was explicitly set via the command-line interface (CLI) or an environment variable.
+func (f *Flag) IsSet() bool {
+	return f.setByFlag || f.setByEnv
 }
 
 // ErrorHandling defines how FlagSet.Parse behaves if the parse fails.
@@ -165,6 +166,7 @@ func (fs *FlagSet) parse() {
 				fmt.Printf("invalid value %#v for env %s: parse error\n", v, f.Env)
 				os.Exit(2)
 			}
+			f.setByEnv = true
 		}
 	}
 
