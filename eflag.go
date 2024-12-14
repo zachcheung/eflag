@@ -13,8 +13,8 @@ import (
 
 // Flag represents a command-line flag and its associated information.
 type Flag struct {
-	p       interface{}
-	changed bool //changed indicates whether the flag has been changed
+	p         interface{}
+	setByFlag bool // Indicates whether the flag value was explicitly set via the command-line interface (CLI)
 	*flag.Flag
 	Name string // Name of the flag
 	Env  string // Environment variable associated with the flag
@@ -64,9 +64,9 @@ func newFlag(fs *flag.FlagSet, p interface{}, name string, value interface{}, us
 	}
 }
 
-// IsChanged indicates whether the flag has been changed
-func (f *Flag) IsChanged() bool {
-	return f.changed
+// IsSetByFlag indicates whether the flag value was explicitly set via the command-line interface (CLI).
+func (f *Flag) IsSetByFlag() bool {
+	return f.setByFlag
 }
 
 // ErrorHandling defines how FlagSet.Parse behaves if the parse fails.
@@ -131,7 +131,7 @@ func (fs *FlagSet) Parse(arguments []string) {
 
 	fs.FlagSet.Visit(func(f *flag.Flag) {
 		// Visit() visits only those flags that have been set.
-		fs.formal[f.Name].changed = true
+		fs.formal[f.Name].setByFlag = true
 	})
 
 	fs.parse()
@@ -148,7 +148,7 @@ func (fs *FlagSet) ReParse() {
 func (fs *FlagSet) parse() {
 	prefix := fs.prefix
 	for _, f := range fs.formal {
-		if f.changed {
+		if f.setByFlag {
 			// Explicitly set flag has the highest precedence
 			continue
 		}
