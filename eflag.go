@@ -76,8 +76,8 @@ const (
 // FlagSet represents a set of flags and provides methods for parsing them.
 type FlagSet struct {
 	*flag.FlagSet
-	Flags  []*Flag // List of flags in the set
-	prefix string  // Prefix for environment variables associated with flags
+	formal map[string]*Flag
+	prefix string // Prefix for environment variables associated with flags
 }
 
 // NewFlagSet returns a new, empty flag set with the specified name and
@@ -114,22 +114,19 @@ func (fs *FlagSet) SetPrefix(prefix string) {
 //   - When env is "-": The flag will not be associated with any environment
 //     variable, and environment variable checking will be ignored.
 func (fs *FlagSet) Var(p interface{}, name string, value interface{}, usage, env string) {
-	fs.Flags = append(fs.Flags, newFlag(fs.FlagSet, p, name, value, usage, env))
+	if fs.formal == nil {
+		fs.formal = make(map[string]*Flag)
+	}
+	fs.formal[name] = newFlag(fs.FlagSet, p, name, value, usage, env)
 }
 
 // Parse parses command-line flags and sets values from environment variables.
 func (fs *FlagSet) Parse(arguments []string) {
-	m := make(map[string]*Flag)
-	for _, f := range fs.Flags {
-		m[f.Name] = f
-	}
 	fs.FlagSet.Parse(arguments)
 
 	fs.FlagSet.Visit(func(f *flag.Flag) {
-		if v, ok := m[f.Name]; ok {
-			// Normally, ok will always be true
-			v.Changed = true
-		}
+		// Visit() visits only those flags that have been set.
+		fs.formal[f.Name].Changed = true
 	})
 
 	fs.parse()
@@ -145,7 +142,7 @@ func (fs *FlagSet) ReParse() {
 // the precedence of explicitly set flags over environment variables.
 func (fs *FlagSet) parse() {
 	prefix := fs.prefix
-	for _, f := range fs.Flags {
+	for _, f := range fs.formal {
 		if f.Changed {
 			// Explicitly set flag has the highest precedence
 			continue
@@ -166,7 +163,7 @@ func (fs *FlagSet) parse() {
 		}
 	}
 
-	for _, f := range fs.Flags {
+	for _, f := range fs.formal {
 		switch f.p.(type) {
 		case *StringList:
 			f.p.(*StringList).setValue()
