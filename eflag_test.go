@@ -54,17 +54,24 @@ func TestParseWithoutPrefix(t *testing.T) {
 	var testBool bool
 	var testInt int
 	var testString string
+	var testSetByFlag string
+	var testSetByEnv string
+	var testUnSet string
 
 	os.Setenv("TESTBOOL", "true")
 	os.Setenv("TEST_INT_ENV", "1")
 	os.Setenv("TESTSTRING", "custom_value")
+	os.Setenv("TEST_SET_BY_ENV", "set")
 
 	f := NewFlagSet("test", ExitOnError)
 	f.Var(&testBool, "testbool", false, "Description for testbool flag", "")
 	f.Var(&testInt, "testint", 0, "Description for testint flag", "TEST_INT_ENV")
 	f.Var(&testString, "teststring", "default", "Description for teststring flag", "-")
+	f.Var(&testSetByFlag, "testsetbyflag", "default", "Description for testsetbyflag flag", "")
+	f.Var(&testSetByEnv, "testsetbyenv", "default", "Description for testsetbyenv flag", "TEST_SET_BY_ENV")
+	f.Var(&testUnSet, "testunset", "default", "Description for testunset flag", "")
 
-	f.Parse([]string{"-testbool=false"})
+	f.Parse([]string{"-testbool=false", "-testsetbyflag", "set"})
 
 	if testBool {
 		t.Error("Expected testBool to be false, but it's true.")
@@ -76,5 +83,17 @@ func TestParseWithoutPrefix(t *testing.T) {
 
 	if testString != "default" {
 		t.Errorf("Expected testString to be 'default', but got '%s'", testString)
+	}
+
+	if fl := f.Lookup("testsetbyflag"); !fl.IsSet() {
+		t.Errorf("Expected testsetbyflag to be set, but got '%v'", fl.IsSet())
+	}
+
+	if fl := f.Lookup("testsetbyenv"); !fl.IsSet() {
+		t.Errorf("Expected testsetbyenv to be set, but got '%v'", fl.IsSet())
+	}
+
+	if fl := f.Lookup("testunset"); fl.IsSet() {
+		t.Errorf("Expected testunset to be unset, but got '%v'", fl.IsSet())
 	}
 }

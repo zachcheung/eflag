@@ -126,6 +126,11 @@ func (fs *FlagSet) Var(p interface{}, name string, value interface{}, usage, env
 	fs.formal[name] = newFlag(fs.FlagSet, p, name, value, usage, env)
 }
 
+// Lookup returns the [Flag] structure of the named flag, returning nil if none exists.
+func (fs *FlagSet) Lookup(name string) *Flag {
+	return fs.formal[name]
+}
+
 // Parse parses command-line flags and sets values from environment variables.
 func (fs *FlagSet) Parse(arguments []string) {
 	fs.FlagSet.Parse(arguments)
@@ -186,6 +191,12 @@ var CommandLine = NewFlagSet(os.Args[0], ExitOnError)
 // Var registers a command-line flag and associates it with a variable, environment.
 func Var(p interface{}, name string, value interface{}, usage, env string) {
 	CommandLine.Var(p, name, value, usage, env)
+}
+
+// Lookup returns the [Flag] structure of the named command-line flag,
+// returning nil if none exists.
+func Lookup(name string) *Flag {
+	return CommandLine.Lookup(name)
 }
 
 // SetPrefix set environment variable prefix.
