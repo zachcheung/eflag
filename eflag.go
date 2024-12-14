@@ -13,11 +13,11 @@ import (
 
 // Flag represents a command-line flag and its associated information.
 type Flag struct {
-	p interface{}
+	p       interface{}
+	changed bool //changed indicates whether the flag has been changed
 	*flag.Flag
-	Name    string // Name of the flag
-	Env     string // Environment variable associated with the flag
-	Changed bool   // Indicates whether the flag has been changed
+	Name string // Name of the flag
+	Env  string // Environment variable associated with the flag
 }
 
 // newFlag creates a new Flag based on the provided parameters.
@@ -62,6 +62,11 @@ func newFlag(fs *flag.FlagSet, p interface{}, name string, value interface{}, us
 		Name: name,
 		Env:  env,
 	}
+}
+
+// IsChanged indicates whether the flag has been changed
+func (f *Flag) IsChanged() bool {
+	return f.changed
 }
 
 // ErrorHandling defines how FlagSet.Parse behaves if the parse fails.
@@ -126,7 +131,7 @@ func (fs *FlagSet) Parse(arguments []string) {
 
 	fs.FlagSet.Visit(func(f *flag.Flag) {
 		// Visit() visits only those flags that have been set.
-		fs.formal[f.Name].Changed = true
+		fs.formal[f.Name].changed = true
 	})
 
 	fs.parse()
@@ -143,7 +148,7 @@ func (fs *FlagSet) ReParse() {
 func (fs *FlagSet) parse() {
 	prefix := fs.prefix
 	for _, f := range fs.formal {
-		if f.Changed {
+		if f.changed {
 			// Explicitly set flag has the highest precedence
 			continue
 		}
