@@ -12,12 +12,14 @@ func TestParseWithPrefix(t *testing.T) {
 	var myString string
 	var myMixedCapsString string
 	var myStringList StringList
+	var myExplicitlySetEnvString string
 
 	os.Setenv("PREFIX_MYBOOL", "true")
 	os.Setenv("PREFIX_MY_INT_ENV", "1")
 	os.Setenv("PREFIX_MYSTRING", "custom_value")
 	os.Setenv("PREFIX_MY_MIXED_CAPS_STRING", "mixedCaps")
 	os.Setenv("PREFIX_MY_STRING_LIST", "a, b ,c")
+	os.Setenv("MY_EXPLICITLY_SET_ENV_STRING", "custom_value")
 
 	f := NewFlagSet("test", ExitOnError)
 	f.Var(&myBool, "mybool", false, "Description for mybool flag", "")
@@ -25,8 +27,9 @@ func TestParseWithPrefix(t *testing.T) {
 	f.Var(&myString, "mystring", "default", "Description for mystring flag", "-")
 	f.Var(&myMixedCapsString, "myMixedCapsString", "default string", "Description for myMixedCapsString flag", "")
 	f.Var(&myStringList, "myStringList", "", "Description for myStringList flag", "")
+	f.Var(&myExplicitlySetEnvString, "myExplicitlySetEnvString", "default", "Description for myExplicitlySetEnvString flag", "MY_EXPLICITLY_SET_ENV_STRING")
 
-	f.SetPrefix("PREFIX_")
+	f.SetPrefix("PREFIX")
 	f.Parse([]string{"-myint", "2"})
 
 	if !myBool {
@@ -47,6 +50,10 @@ func TestParseWithPrefix(t *testing.T) {
 
 	if !reflect.DeepEqual(myStringList.Value(), []string{"a", "b", "c"}) {
 		t.Errorf("Expected myStringList value to be %v, but got %v", []string{"a", "b", "c"}, myStringList.Value())
+	}
+
+	if myExplicitlySetEnvString != "custom_value" {
+		t.Errorf("Expected myExplicitlySetEnvString to be 'custom_value', but got '%s'", myExplicitlySetEnvString)
 	}
 }
 

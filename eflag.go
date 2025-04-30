@@ -17,8 +17,9 @@ type Flag struct {
 	setByFlag bool // Indicates whether the flag value was explicitly set via the command-line interface (CLI)
 	setByEnv  bool // Indicates whether the flag value was set via an environment variable
 	*flag.Flag
-	Name string // Name of the flag
-	Env  string // Environment variable associated with the flag
+	Name       string // Name of the flag
+	Env        string // Environment variable associated with the flag
+	EnvNameSet bool   // Indicates whether the environment name was set explicitly
 }
 
 // newFlag creates a new Flag based on the provided parameters.
@@ -49,19 +50,22 @@ func newFlag(fs *flag.FlagSet, p interface{}, name string, value interface{}, us
 		os.Exit(1)
 	}
 
+	var envNameSet bool
 	if env == "" {
 		env = MixedCapsToScreamingSnake(name)
 	} else if env == "-" {
 		// Don't read from env var
 	} else {
 		env = strings.ToUpper(env)
+		envNameSet = true
 	}
 
 	return &Flag{
-		p:    p,
-		Flag: fs.Lookup(name),
-		Name: name,
-		Env:  env,
+		p:          p,
+		Flag:       fs.Lookup(name),
+		Name:       name,
+		Env:        env,
+		EnvNameSet: envNameSet,
 	}
 }
 
@@ -163,7 +167,7 @@ func (fs *FlagSet) parse() {
 			continue
 		}
 
-		if prefix != "" && !strings.HasPrefix(f.Env, prefix) {
+		if prefix != "" && !f.EnvNameSet && !strings.HasPrefix(f.Env, prefix) {
 			f.Env = prefix + f.Env
 		}
 		if v := os.Getenv(f.Env); v != "" {
